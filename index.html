@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,6 +15,10 @@
             background-color: #111;
             overflow: hidden;
             touch-action: none; /* Prevent browser zooming/scrolling on mobile */
+            image-rendering: pixelated; /* Global pixelation */
+        }
+        canvas {
+            image-rendering: pixelated; /* Ensure canvas is crisp */
         }
     </style>
 <script type="importmap">
