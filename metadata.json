@@ -1,0 +1,5 @@
+{
+  "name": "Exit the Dungeon: React Edition",
+  "description": "A 2D action crawler where you must descend through procedural rooms, fight enemies, and defeat bosses.",
+  "requestFramePermissions": []
+}
