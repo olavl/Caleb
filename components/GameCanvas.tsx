@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { CONFIG, DIFFICULTY_MODES, WEAPONS, SHOP_ITEMS } from '../constants';
 import { GameState, Difficulty, Player, Enemy, Projectile, Particle, GameStats, SaveData } from '../types';
@@ -1057,9 +1058,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Canvas Tap to Shoot
     const handleCanvasTouch = (e: React.TouchEvent) => {
-        // Prevent scrolling
-        // e.preventDefault(); // Moved to passive: false in effect if needed, but React defaults might warn.
-        // We'll trust CSS touch-action: none to prevent scroll.
+        // Only process game touches if we are in a playing state.
+        // If we are in SHOP or MENU, we ignore canvas touches to allow UI interaction.
+        if (gameState !== 'PLAYING' && gameState !== 'BOSS_INTRO' && gameState !== 'EXITING') {
+            return;
+        }
 
         // If touching controls, we stopPropagation there, so this only fires for "World" touches.
         const canvas = canvasRef.current;

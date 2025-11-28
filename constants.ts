@@ -1,3 +1,4 @@
+
 export const CONFIG = {
     WIDTH: 800,
     HEIGHT: 400,
@@ -8,14 +9,14 @@ export const CONFIG = {
 
 export const DIFFICULTY_MODES = {
     'EASY': { enemyHp: 0.4, bossHp: 0.6, moneyMult: 1.5, enemySpeed: 0.7, damageMult: 0.5 },
-    // Rebalanced Normal Mode: Lowered HP and Speed significantly to prevent "too strong" feeling
-    'NORMAL': { enemyHp: 0.7, bossHp: 0.9, moneyMult: 1.0, enemySpeed: 0.8, damageMult: 0.8 },
-    'HARD': { enemyHp: 1.5, bossHp: 1.5, moneyMult: 0.8, enemySpeed: 1.2, damageMult: 1.5 },
+    // Rebalanced: Enemies now have more HP (1.2x instead of 0.7x)
+    'NORMAL': { enemyHp: 1.2, bossHp: 1.2, moneyMult: 1.0, enemySpeed: 0.8, damageMult: 0.8 },
+    // Rebalanced: Hard enemies are much tankier (2.5x instead of 1.5x)
+    'HARD': { enemyHp: 2.5, bossHp: 2.5, moneyMult: 0.8, enemySpeed: 1.2, damageMult: 1.5 },
     'IMPOSSIBLE': { enemyHp: 3.0, bossHp: 5.0, moneyMult: 0.5, enemySpeed: 1.5, damageMult: 2.0 }
 };
 
 export const WEAPONS = {
-    // Buffed Pistol Damage (1.5 -> 2.5) to make early game less punishing
     'PISTOL': { name: 'Pistol', dmg: 2.5, rate: 18, speed: 10, type: 'RANGED', auto: false, color: '#f1c40f' },
     'SHOTGUN': { name: 'Shotgun', dmg: 1.2, rate: 45, speed: 10, count: 3, spread: 0.3, type: 'RANGED', auto: false, color: '#e67e22' },
     'SWORD': { name: 'Sword', dmg: 4, rate: 20, range: 45, type: 'MELEE', auto: true, color: '#ecf0f1' },

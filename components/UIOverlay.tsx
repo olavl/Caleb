@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameStats, GameState, Difficulty, SaveData } from '../types';
 import { SHOP_ITEMS, WEAPONS } from '../constants';
@@ -19,7 +20,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     // HUD
     if (gameState === 'PLAYING' || gameState === 'BOSS_INTRO' || gameState === 'EXITING') {
         return (
-            <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none">
+            <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none z-30">
                 <div className="flex flex-col">
                     <div className="flex gap-1 text-red-500 text-2xl drop-shadow-md">
                         {Array.from({ length: stats.maxHp }).map((_, i) => (
@@ -40,18 +41,30 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     // MAIN MENU
     if (gameState === 'MENU') {
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 text-white p-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 text-white p-8 z-50">
                 <h1 className="text-4xl md:text-6xl font-black text-emerald-500 mb-2 tracking-tighter">EXIT THE DUNGEON</h1>
                 <p className="text-gray-400 mb-8">React Edition</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-lg">
-                    <button onClick={() => onStartGame('EASY')} className="bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold transition">
+                    <button 
+                        onClick={() => onStartGame('EASY')} 
+                        className="bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold transition active:scale-95"
+                        style={{ touchAction: 'manipulation' }}
+                    >
                         EASY
                     </button>
-                    <button onClick={() => onStartGame('NORMAL')} className="bg-orange-600 hover:bg-orange-500 py-3 rounded font-bold transition">
+                    <button 
+                        onClick={() => onStartGame('NORMAL')} 
+                        className="bg-orange-600 hover:bg-orange-500 py-3 rounded font-bold transition active:scale-95"
+                        style={{ touchAction: 'manipulation' }}
+                    >
                         NORMAL
                     </button>
-                    <button onClick={() => onStartGame('HARD')} className="bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition">
+                    <button 
+                        onClick={() => onStartGame('HARD')} 
+                        className="bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition active:scale-95"
+                        style={{ touchAction: 'manipulation' }}
+                    >
                         HARD
                     </button>
                 </div>
@@ -59,7 +72,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 <button 
                     disabled={!saveData.impossibleUnlocked}
                     onClick={() => onStartGame('IMPOSSIBLE')} 
-                    className={`mt-4 w-full max-w-lg py-3 rounded font-bold transition border-2 ${saveData.impossibleUnlocked ? 'border-purple-500 text-purple-400 hover:bg-purple-900' : 'border-gray-700 text-gray-600 cursor-not-allowed'}`}
+                    style={{ touchAction: 'manipulation' }}
+                    className={`mt-4 w-full max-w-lg py-3 rounded font-bold transition border-2 active:scale-95 ${saveData.impossibleUnlocked ? 'border-purple-500 text-purple-400 hover:bg-purple-900' : 'border-gray-700 text-gray-600 cursor-not-allowed'}`}
                 >
                     {saveData.impossibleUnlocked ? 'IMPOSSIBLE MODE' : 'IMPOSSIBLE (LOCKED)'}
                 </button>
@@ -74,9 +88,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     // SHOP
     if (gameState === 'SHOP') {
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 text-white p-6">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 text-white p-6 z-50">
                 <h2 className="text-3xl font-bold text-yellow-500 mb-6">THE MERCHANT</h2>
-                <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                <div className="grid grid-cols-2 gap-4 w-full max-w-2xl overflow-y-auto max-h-[70vh]">
                     {SHOP_ITEMS.map(item => {
                         const canAfford = stats.money >= item.cost;
                         const isEquipped = item.weapon && stats.weapon === item.weapon;
@@ -89,7 +103,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                                 <button 
                                     onClick={() => onBuyItem(item.id)}
                                     disabled={!canAfford || isEquipped}
-                                    className={`mt-2 py-1 px-3 rounded text-sm font-bold ${isEquipped ? 'bg-gray-600 text-gray-400' : (canAfford ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed')}`}
+                                    style={{ touchAction: 'manipulation' }}
+                                    className={`mt-2 py-2 px-3 rounded text-sm font-bold active:scale-95 transition ${isEquipped ? 'bg-gray-600 text-gray-400' : (canAfford ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed')}`}
                                 >
                                     {isEquipped ? 'EQUIPPED' : 'BUY'}
                                 </button>
@@ -97,12 +112,16 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                         )
                     })}
                 </div>
-                <div className="mt-8 flex gap-4">
-                    <div className="bg-gray-800 px-4 py-2 rounded text-yellow-400 font-bold border border-yellow-600">
+                <div className="mt-4 flex gap-4 w-full max-w-2xl justify-center">
+                    <div className="bg-gray-800 px-4 py-2 rounded text-yellow-400 font-bold border border-yellow-600 flex items-center">
                         Funds: ${stats.money}
                     </div>
-                    <button onClick={onCloseShop} className="bg-emerald-600 hover:bg-emerald-500 px-8 py-2 rounded font-bold">
-                        EXIT SHOP (Next Level)
+                    <button 
+                        onClick={onCloseShop} 
+                        style={{ touchAction: 'manipulation' }}
+                        className="bg-emerald-600 hover:bg-emerald-500 px-8 py-2 rounded font-bold active:scale-95 transition"
+                    >
+                        EXIT SHOP
                     </button>
                 </div>
             </div>
@@ -113,7 +132,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
         const isWin = gameState === 'VICTORY';
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 text-white p-8 animate-fade-in">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 text-white p-8 animate-fade-in z-50">
                 <h1 className={`text-5xl font-black mb-4 ${isWin ? 'text-yellow-400' : 'text-red-600'}`}>
                     {isWin ? 'VICTORY!' : 'YOU DIED'}
                 </h1>
@@ -126,7 +145,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                     <div className="text-4xl font-mono">{stats.room}</div>
                 </div>
 
-                <button onClick={onBackToMenu} className="bg-white text-black hover:bg-gray-200 px-8 py-3 rounded font-bold text-lg">
+                <button 
+                    onClick={onBackToMenu} 
+                    style={{ touchAction: 'manipulation' }}
+                    className="bg-white text-black hover:bg-gray-200 px-8 py-3 rounded font-bold text-lg active:scale-95 transition"
+                >
                     MAIN MENU
                 </button>
             </div>
