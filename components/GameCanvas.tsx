@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { CONFIG, DIFFICULTY_MODES, WEAPONS, SHOP_ITEMS } from '../constants';
 import { GameState, Difficulty, Player, Enemy, Projectile, Particle, GameStats, SaveData } from '../types';
 
@@ -30,6 +30,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const requestRef = useRef<number>(0);
     const previousTimeRef = useRef<number>(0);
     
+    // Joystick visual state (for UI feedback only, logic uses ref)
+    const [joystickPos, setJoystickPos] = useState({ x: 0, y: 0 });
+    const [isTouchingJoystick, setIsTouchingJoystick] = useState(false);
+    
     // Mutable Game State (Performance optimization: avoiding React state for high-frequency updates)
     const gameRef = useRef({
         player: null as Player | null,
@@ -42,6 +46,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         input: {
             keys: {} as Record<string, boolean>,
             mouse: { x: 0, y: 0, down: false },
+            joystickX: 0 // -1 to 1 float
         },
         effects: [] as any[],
         currentRoom: { rows: 0, cols: 0 },
@@ -299,13 +304,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const p = game.player;
         if (!p) return;
 
-        // Movement
+        // Movement (Keyboard + Joystick)
         p.vx = 0;
         const speed = p.onGround ? 4 : 3;
-        if (game.input.keys['a'] || game.input.keys['ArrowLeft']) { p.vx = -speed; p.facing = -1; }
-        if (game.input.keys['d'] || game.input.keys['ArrowRight']) { p.vx = speed; p.facing = 1; }
+        const joystickX = game.input.joystickX;
         
-        // Jump
+        let moveDir = 0;
+        if (game.input.keys['a'] || game.input.keys['ArrowLeft']) moveDir = -1;
+        if (game.input.keys['d'] || game.input.keys['ArrowRight']) moveDir = 1;
+        
+        // Combine inputs (Joystick overrides if active)
+        if (Math.abs(joystickX) > 0.1) {
+            p.vx = joystickX * speed;
+            if (joystickX > 0) p.facing = 1;
+            if (joystickX < 0) p.facing = -1;
+        } else if (moveDir !== 0) {
+            p.vx = moveDir * speed;
+            p.facing = moveDir;
+        }
+        
+        // Jump (Keyboard + Touch Button)
         if (p.onGround && (game.input.keys['w'] || game.input.keys['ArrowUp'] || game.input.keys[' '])) {
             p.vy = -12;
         }
@@ -322,7 +340,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
                     game.input.mouse.y - (p.y + p.h/2 - game.camera.y),
                     game.input.mouse.x - (p.x + p.w/2 - game.camera.x)
                 );
-                // If keyboard only or no mouse movement, shoot straight
+                // If keyboard only or no mouse/touch aiming, shoot straight
+                // We assume if aiming with joystick and shooting, we use facing dir unless screen tapped
                 if (!game.input.mouse.down) angle = p.facing > 0 ? 0 : Math.PI;
 
                 const count = weapon.count || 1;
@@ -991,13 +1010,124 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }
     }, [triggerShopAction]);
 
+    // Touch Controls Handlers
+    const handleJoystickStart = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        setIsTouchingJoystick(true);
+        const touch = e.touches[0];
+        // Store initial touch? No, let's just use center of joystick as origin
+        // We'll calculate relative to the visual center in Move
+    };
+
+    const handleJoystickMove = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        if (!isTouchingJoystick) return;
+        const touch = e.touches[0];
+        const target = e.currentTarget.getBoundingClientRect();
+        const centerX = target.left + target.width / 2;
+        
+        let deltaX = touch.clientX - centerX;
+        // Clamp visual
+        const maxDist = 30;
+        if (deltaX > maxDist) deltaX = maxDist;
+        if (deltaX < -maxDist) deltaX = -maxDist;
+        
+        setJoystickPos({ x: deltaX, y: 0 });
+        
+        // Normalize for Input (-1 to 1)
+        gameRef.current.input.joystickX = deltaX / maxDist;
+    };
+
+    const handleJoystickEnd = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        setIsTouchingJoystick(false);
+        setJoystickPos({ x: 0, y: 0 });
+        gameRef.current.input.joystickX = 0;
+    };
+
+    const handleJumpStart = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        gameRef.current.input.keys[' '] = true;
+    };
+
+    const handleJumpEnd = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        gameRef.current.input.keys[' '] = false;
+    };
+
+    // Canvas Tap to Shoot
+    const handleCanvasTouch = (e: React.TouchEvent) => {
+        // Prevent scrolling
+        // e.preventDefault(); // Moved to passive: false in effect if needed, but React defaults might warn.
+        // We'll trust CSS touch-action: none to prevent scroll.
+
+        // If touching controls, we stopPropagation there, so this only fires for "World" touches.
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const touchX = (touch.clientX - rect.left) * scaleX;
+        const touchY = (touch.clientY - rect.top) * scaleY;
+
+        // Update Mouse Pos for aiming
+        gameRef.current.input.mouse.x = touchX;
+        gameRef.current.input.mouse.y = touchY;
+        
+        // Trigger Fire
+        if (e.type === 'touchstart' || e.type === 'touchmove') {
+            gameRef.current.input.mouse.down = true;
+        } else {
+            gameRef.current.input.mouse.down = false;
+        }
+    };
+
     return (
-        <canvas 
-            ref={canvasRef} 
-            width={CONFIG.WIDTH} 
-            height={CONFIG.HEIGHT}
-            className="w-full h-full block bg-gray-900 rendering-pixelated"
-        />
+        <div className="relative w-full h-full select-none" style={{ touchAction: 'none' }}>
+            <canvas 
+                ref={canvasRef} 
+                width={CONFIG.WIDTH} 
+                height={CONFIG.HEIGHT}
+                className="w-full h-full block bg-gray-900 rendering-pixelated"
+                onTouchStart={handleCanvasTouch}
+                onTouchMove={handleCanvasTouch}
+                onTouchEnd={(e) => {
+                    handleCanvasTouch(e);
+                    gameRef.current.input.mouse.down = false;
+                }}
+            />
+            
+            {/* Mobile Controls Overlay */}
+            {(gameState === 'PLAYING' || gameState === 'BOSS_INTRO' || gameState === 'EXITING') && (
+                <>
+                    {/* Joystick Zone (Left) */}
+                    <div 
+                        className="absolute bottom-4 left-4 w-32 h-32 flex items-center justify-center opacity-50 z-20"
+                        onTouchStart={handleJoystickStart}
+                        onTouchMove={handleJoystickMove}
+                        onTouchEnd={handleJoystickEnd}
+                    >
+                        <div className="w-24 h-24 bg-white/20 rounded-full border-2 border-white/30 relative">
+                            <div 
+                                className="w-10 h-10 bg-white/80 rounded-full absolute top-1/2 left-1/2 -ml-5 -mt-5"
+                                style={{ transform: `translate(${joystickPos.x}px, ${joystickPos.y}px)` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Jump Button (Right) */}
+                    <div 
+                        className="absolute bottom-8 right-8 w-20 h-20 bg-white/20 rounded-full border-2 border-white/30 flex items-center justify-center opacity-50 z-20 active:bg-white/40"
+                        onTouchStart={handleJumpStart}
+                        onTouchEnd={handleJumpEnd}
+                    >
+                        <span className="text-white font-bold text-sm">JUMP</span>
+                    </div>
+                </>
+            )}
+        </div>
     );
 };
 
